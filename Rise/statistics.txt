@@ -1,0 +1,7 @@
+Kills_0
+Deaths_0
+DistanceRan_27.909956
+DistanceFlew_128.13995
+DistanceJumped_152.45508
+VoidSaves_0
+ConfigsLoaded_0
