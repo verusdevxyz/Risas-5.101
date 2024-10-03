@@ -5,6 +5,7 @@
  */
 package dev.risas.module.impl.movement;
 
+import com.sun.xml.internal.bind.v2.runtime.reflect.Lister;
 import dev.risas.Rise;
 import dev.risas.event.impl.motion.PostMotionEvent;
 import dev.risas.event.impl.motion.PreMotionEvent;
@@ -28,6 +29,8 @@ import net.minecraft.block.BlockSlime;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.entity.EntityPlayerSP;
 import net.minecraft.entity.player.EntityPlayer;
+import net.minecraft.init.Blocks;
+import net.minecraft.init.Items;
 import net.minecraft.item.*;
 import net.minecraft.network.Packet;
 import net.minecraft.network.play.client.*;
@@ -50,7 +53,7 @@ public final class Fly extends Module {
 
     public static boolean hypixelDisable;
     private final ModeSetting mode = new ModeSetting("Fly Mode", this, "Vanilla", "Vanilla", "Damage"/*, "Custom"*/, "Creative",
-            "Jetpack", "Hypixel", "Hypixel Fast Lag", "Verus", "Verus Lag", "VerusBlack", "Verus AirJump", "Air Walk", "Bow Longjump", "Mush", "Viper", "Bow Fly", "ACR", "ACR2", "Collide",
+            "Jetpack", "Hypixel", "Hypixel Fast Lag", "Verus", "Verus Lag", "VerusBlack", "Verus AirJump", "Trojan", "Air Walk", "Bow Longjump", "Mush", "Viper", "Bow Fly", "ACR", "ACR2", "Collide",
             "Spartan", "Aac3", "MCCentral", "Exempted Value", "Kauri", "Taka", "Vicnix", "Wait for Damage", "Old NCP", "Minemenclub", "Minemenclub 2",
             "Redesky", "BlockFly", "Matrix1.17", "Vulcan", "Vulcan2", "MineBox", "Hycraft", "Block Drop");
 
@@ -346,6 +349,39 @@ public final class Fly extends Module {
         smoothCamera.hidden = sigmaFastFly.hidden = mode.is("Custom");
     }
 
+    @Override
+    public void onUpdate(final UpdateEvent event) {
+        switch (mode.getMode()) {
+            case "Trojan": {
+                if (mc.gameSettings.keyBindSneak.isKeyDown() && mc.thePlayer.ticksExisted % 2 == 0) {
+                    mc.thePlayer.setPosition(mc.thePlayer.posX, mc.thePlayer.posY - 1, mc.thePlayer.posZ);
+
+                }
+                if (mc.thePlayer.onGround) {
+                    BlockPos pos = mc.thePlayer.getPosition().add(0, mc.thePlayer.posY > 0 ? -255 : 255, 0);
+                    if (pos == null) return;
+
+                    PacketUtil.sendPacket(new C08PacketPlayerBlockPlacement(
+                            pos,
+                            256,
+                            new ItemStack(Items.water_bucket),
+                            0F,
+                            0.5F + (float) Math.random() * 0.44F,
+                            0F
+                    ));
+                    PacketUtil.sendPacket(new C08PacketPlayerBlockPlacement(
+                            pos,
+                            256,
+                            new ItemStack(Blocks.stone),
+                            0F,
+                            0.5F + (float) Math.random() * 0.44F,
+                            0F
+                    ));
+                }
+                break;
+            }
+        }
+    }
     @Override
     public void onPreMotion(final PreMotionEvent event) {
         ticks++;
@@ -1481,6 +1517,28 @@ public final class Fly extends Module {
                 break;
             }
 
+            case "Trojan": {
+                    if (mc.thePlayer.onGround) {
+                        mc.thePlayer.motionY = 0.36f;
+                    }
+
+                    if (mc.gameSettings.keyBindJump.isKeyDown()) {
+
+                        if (mc.thePlayer.motionY < 0) {
+                            mc.thePlayer.motionY += ticks / 30D;
+                        } else {
+                            mc.thePlayer.motionY = ticks / 30D;
+                        }
+
+                        mc.thePlayer.motionX *= 1.02;
+                        mc.thePlayer.motionZ *= 1.02;
+                    } else {
+                        ticks = 0;
+                    }
+
+                    break;
+            }
+
             case "VerusBlack": {
                 if (mc.gameSettings.keyBindJump.isKeyDown()) {
                     if (mc.thePlayer.ticksExisted % 2 == 0) {
@@ -1929,6 +1987,16 @@ public final class Fly extends Module {
     public void onBlockCollide(final BlockCollideEvent event) {
         switch (mode.getMode()) {
             case "VerusBlack": {
+                if (event.getBlock() instanceof BlockAir && !mc.thePlayer.isSneaking()) {
+                    final double x = event.getX(), y = event.getY(), z = event.getZ();
+
+                    if (y < mc.thePlayer.posY) {
+                        event.setCollisionBoundingBox(AxisAlignedBB.fromBounds(-15, -1, -15, 15, 1, 15).offset(x, y, z));
+                    }
+                }
+            }
+            break;
+            case "Trojan": {
                 if (event.getBlock() instanceof BlockAir && !mc.thePlayer.isSneaking()) {
                     final double x = event.getX(), y = event.getY(), z = event.getZ();
 
